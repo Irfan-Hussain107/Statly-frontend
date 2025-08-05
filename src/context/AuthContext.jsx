@@ -9,17 +9,17 @@ export const AuthProvider = ({ children }) => {
 
   const login = (accessToken) => {
     updateAccessToken(accessToken); 
-    setToken(accessToken);          
+    setToken(accessToken);
   };
 
   const logout = useCallback(async () => {
     try {
       await API.post('/auth/logout');
     } catch (error) {
-      console.error("Logout failed", error);
+      console.error("Logout API call failed, but logging out on the client.", error);
     } finally {
       updateAccessToken(null); 
-      setToken(null);          
+      setToken(null);
     }
   }, []);
 
@@ -27,18 +27,23 @@ export const AuthProvider = ({ children }) => {
     const checkAuthStatus = async () => {
       try {
         const response = await API.post('/auth/refresh-token');
-        if (response.data.accessToken) {
+        
+        if (response.data && response.data.accessToken) {
           login(response.data.accessToken);
+        } else {
+          logout();
         }
       } catch (error) {
-        console.log("No active session");
+        console.log("No active session or refresh token is invalid.");
+        updateAccessToken(null);
+        setToken(null);
       } finally {
         setIsLoading(false);
       }
     };
 
     checkAuthStatus();
-  }, []);
+  }, [logout]); 
 
   return (
     <AuthContext.Provider value={{ token, login, logout, isLoading }}>
